@@ -21,9 +21,12 @@ class Tests(unittest.TestCase):
             port=6688,
             verbose=False,
         )
-        manager.start()
-        local_engine = ctt.inference.infer.InferenceEngine(self.EXPERIMENT_PATH)
-        remote_engine = covid19sim.server_utils.InferenceClient(6688, "localhost")
+
+        manager.run()
+        local_engine = ctt.inference.infer.InferenceEngine(
+            self.EXPERIMENT_PATH)
+        remote_engine = covid19sim.server_utils.InferenceClient(
+            6688, "localhost")
         dataset = ctt.data_loading.loader.ContactDataset(self.DATASET_PATH)
         for _ in range(1000):
             hdi, local_output = None, None
@@ -40,14 +43,15 @@ class Tests(unittest.TestCase):
             if local_output is None:
                 self.assertTrue(remote_output is None)
             # TODO: test below is pretty useless until we figure out the output
-            #if local_output is not None:
+            # if local_output is not None:
             if local_output is not None and remote_output is not None:
                 for output in [local_output, remote_output]:
                     self.assertIsInstance(output, dict)
                     self.assertEqual(len(output), 2)
                     self.assertIn("contagion_proba", output)
                     self.assertIn("infectiousness", output)
-                    self.assertIsInstance(output["contagion_proba"], np.ndarray)
+                    self.assertIsInstance(
+                        output["contagion_proba"], np.ndarray)
                     self.assertIsInstance(output["infectiousness"], np.ndarray)
                 self.assertEqual(
                     local_output["contagion_proba"].shape,

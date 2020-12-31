@@ -21,8 +21,10 @@ class NaiveClusteringTests(unittest.TestCase):
         for _ in range(n_trials):
             # scenario: single day visits, 1 cluster per visit, not enough visits to overlap the clusters
             visits = [
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-                Visit(visitor_real_uid=2, visited_real_uid=0, exposition=False, timestamp=2),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=2),
+                Visit(visitor_real_uid=2, visited_real_uid=0,
+                      exposition=False, timestamp=2),
             ]
             # we will cheat and hard-code some initial 4-bit uids to make sure there is no overlap
             humans = [
@@ -40,9 +42,11 @@ class NaiveClusteringTests(unittest.TestCase):
             # now we need to get all messages sent to human 0 to do our actual clustering analysis
             h0_messages = messages[0]["received_messages"]
             self.assertEqual(len(h0_messages), 3)  # three timesteps in book
-            self.assertEqual(sum([len(msgs) for msgs in h0_messages.values()]), 2)
+            self.assertEqual(sum([len(msgs)
+                                  for msgs in h0_messages.values()]), 2)
             self.assertEqual(len(h0_messages[2]), 2)
-            h0_messages = [msg for msgs in h0_messages.values() for msg in msgs]
+            h0_messages = [msg for msgs in h0_messages.values()
+                           for msg in msgs]
             cluster_manager = naive.NaiveClusterManager(
                 ticks_per_uid_roll=1,
                 max_history_ticks_offset=never,
@@ -54,7 +58,8 @@ class NaiveClusteringTests(unittest.TestCase):
             self.assertEqual(len(expositions), 2)
             self.assertEqual(sum(expositions), 0)
             embeddings = cluster_manager.get_embeddings_array()
-            self.assertEqual(len(np.unique(embeddings[:, 0])), 2)  # unique cluster ids
+            # unique cluster ids
+            self.assertEqual(len(np.unique(embeddings[:, 0])), 2)
             self.assertTrue((embeddings[:, 1] == 0).all())  # risk level
             self.assertTrue((embeddings[:, 2] == 1).all())  # message count
             self.assertTrue((embeddings[:, 3] == 0).all())  # timestamp offset
@@ -62,11 +67,16 @@ class NaiveClusteringTests(unittest.TestCase):
     def test_same_day_visit_clusters_overlap(self):
         # scenario: single day visits, and some visits will share the same cluster
         visits = [
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=0),
-            Visit(visitor_real_uid=2, visited_real_uid=0, exposition=False, timestamp=0),
-            Visit(visitor_real_uid=3, visited_real_uid=0, exposition=False, timestamp=0),
-            Visit(visitor_real_uid=4, visited_real_uid=0, exposition=False, timestamp=0),
-            Visit(visitor_real_uid=5, visited_real_uid=0, exposition=False, timestamp=0),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=0),
+            Visit(visitor_real_uid=2, visited_real_uid=0,
+                  exposition=False, timestamp=0),
+            Visit(visitor_real_uid=3, visited_real_uid=0,
+                  exposition=False, timestamp=0),
+            Visit(visitor_real_uid=4, visited_real_uid=0,
+                  exposition=False, timestamp=0),
+            Visit(visitor_real_uid=5, visited_real_uid=0,
+                  exposition=False, timestamp=0),
         ]
         # we will cheat and hard-code some initial 4-bit uids to make sure there is overlap
         humans = [
@@ -79,11 +89,13 @@ class NaiveClusteringTests(unittest.TestCase):
             ) for idx in range(6)
         ]
         day0_visitor_uids = [h.rolling_uids[0] for h in humans[1:]]
-        self.assertTrue(len(np.unique(day0_visitor_uids)) == 3)  # two visits will be overlapped
+        self.assertTrue(len(np.unique(day0_visitor_uids)) ==
+                        3)  # two visits will be overlapped
         messages = generate_received_messages(humans)
         h0_messages = messages[0]["received_messages"]
         self.assertEqual(len(h0_messages), 1)  # single timestep in book
-        self.assertEqual(len(h0_messages[0]), 5)  # all 5 encounter messages in day 0
+        # all 5 encounter messages in day 0
+        self.assertEqual(len(h0_messages[0]), 5)
         h0_messages = [msg for msgs in h0_messages.values() for msg in msgs]
         cluster_manager = naive.NaiveClusterManager(
             ticks_per_uid_roll=1,
@@ -95,27 +107,34 @@ class NaiveClusteringTests(unittest.TestCase):
         expositions = cluster_manager._get_expositions_array()
         self.assertTrue(len(expositions) == 3 and sum(expositions) == 0)
         embeddings = cluster_manager.get_embeddings_array()
-        self.assertEqual(len(np.unique(embeddings[:, 0])), 3)  # unique cluster ids
+        # unique cluster ids
+        self.assertEqual(len(np.unique(embeddings[:, 0])), 3)
         self.assertTrue((embeddings[:, 1] == 7).all())  # risk level
-        self.assertTrue(np.logical_and(embeddings[:, 2] > 0, embeddings[:, 2] < 3).all())
+        self.assertTrue(np.logical_and(
+            embeddings[:, 2] > 0, embeddings[:, 2] < 3).all())
         self.assertTrue((embeddings[:, 3] == 0).all())  # timestamp
 
     def test_multi_day_visit_clusters_overlap(self):
         # scenario: multi day visits, and some visits will share the same cluster
         # we will cheat and hard-code some uids to make sure there is meaninful overlap
-        init_uids = [[np.uint8(max(human_idx - 1, 0) % 2)] for human_idx in range(9)]
+        init_uids = [[np.uint8(max(human_idx - 1, 0) % 2)]
+                     for human_idx in range(9)]
         for timestamp_idx in range(1, 3):
             for human_idx in range(9):
                 init_uids[human_idx].append(
-                    (init_uids[human_idx][-1] << 1) + np.uint8(max(human_idx - 1, 0) >> max(3 - timestamp_idx, 0))
+                    (init_uids[human_idx][-1] << 1) +
+                    np.uint8(max(human_idx - 1, 0) >>
+                             max(3 - timestamp_idx, 0))
                 )
         visits = [  # first sub-scenario: shrinking number of visits (should end w/ 3 clusters)
             *[Visit(visitor_real_uid=id, visited_real_uid=0, exposition=False, timestamp=0)
               for id in range(1, 9)],
             *[Visit(visitor_real_uid=id, visited_real_uid=0, exposition=False, timestamp=1)
               for id in range(1, 5)],
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-            Visit(visitor_real_uid=3, visited_real_uid=0, exposition=False, timestamp=2)
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=2),
+            Visit(visitor_real_uid=3, visited_real_uid=0,
+                  exposition=False, timestamp=2)
         ]
         humans = [
             FakeHuman(
@@ -127,7 +146,8 @@ class NaiveClusteringTests(unittest.TestCase):
             ) for idx in range(9)
         ]
         messages = generate_received_messages(humans)
-        h0_messages = [msg for msgs in messages[0]["received_messages"].values() for msg in msgs]
+        h0_messages = [msg for msgs in messages[0]
+                       ["received_messages"].values() for msg in msgs]
         cluster_manager = naive.NaiveClusterManager(
             ticks_per_uid_roll=1,
             max_history_ticks_offset=never,
@@ -160,7 +180,8 @@ class NaiveClusteringTests(unittest.TestCase):
             ticks_per_uid_roll=1,
             max_history_ticks_offset=never,
         )
-        cluster_manager.add_messages([msg for msgs in messages[0]["received_messages"].values() for msg in msgs])
+        cluster_manager.add_messages(
+            [msg for msgs in messages[0]["received_messages"].values() for msg in msgs])
         self.assertEqual(len(cluster_manager.clusters), 4)
         self.assertTrue(
             (cluster_manager.clusters[0].get_encounter_count() == 7) and
@@ -172,7 +193,8 @@ class NaiveClusteringTests(unittest.TestCase):
     def test_cluster_risk_update(self):
         # scenario: single day visits, and some visits will share the same cluster
         visits = [
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=0),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=0),
         ]
         humans = [
             FakeHuman(real_uid=0, exposition_timestamp=never, visits_to_adopt=visits,
@@ -183,7 +205,8 @@ class NaiveClusteringTests(unittest.TestCase):
         messages = generate_received_messages(humans)
         h0_messages = messages[0]["received_messages"]
         self.assertEqual(len(h0_messages), 1)  # single timestep in book
-        self.assertEqual(len(h0_messages[0]), 1)  # single encounter message in day 0
+        # single encounter message in day 0
+        self.assertEqual(len(h0_messages[0]), 1)
         h0_messages = [msg for msgs in h0_messages.values() for msg in msgs]
         cluster_manager = naive.NaiveClusterManager(
             ticks_per_uid_roll=1,
@@ -200,13 +223,15 @@ class NaiveClusteringTests(unittest.TestCase):
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(9))
         # add a new encounter: it should not match the existing cluster due to diff risk
         cluster_manager.add_messages([
-            mu.EncounterMessage(humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
+            mu.EncounterMessage(
+                humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
         ])
         self.assertEqual(len(cluster_manager.clusters), 2)
         self.assertEqual(cluster_manager.clusters[1].risk_level, np.uint8(1))
         # add a new encounter: it should match the existing cluster due to same risk
         new_encounter = \
-            mu.EncounterMessage(humans[1].rolling_uids[0], risk_level=np.uint8(9), encounter_time=0)
+            mu.EncounterMessage(
+                humans[1].rolling_uids[0], risk_level=np.uint8(9), encounter_time=0)
         cluster_manager.add_messages([new_encounter])
         self.assertEqual(len(cluster_manager.clusters), 2)
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(9))
@@ -216,44 +241,56 @@ class NaiveClusteringTests(unittest.TestCase):
             mu.create_update_message(new_encounter, np.uint8(13), np.uint64(1))
         ])
         self.assertEqual(len(cluster_manager.clusters), 3)
-        self.assertTrue(all([c.risk_level in [9, 1, 13] for c in cluster_manager.clusters]))
-        self.assertTrue(all([c.get_encounter_count() == 1 for c in cluster_manager.clusters]))
+        self.assertTrue(all([c.risk_level in [9, 1, 13]
+                             for c in cluster_manager.clusters]))
+        self.assertTrue(
+            all([c.get_encounter_count() == 1 for c in cluster_manager.clusters]))
         # update the second of the two encounters in the first cluster; we should now be back at two
         cluster_manager.add_messages([
             mu.create_update_message(new_encounter, np.uint8(13), np.uint64(1))
         ])
         self.assertEqual(len(cluster_manager.clusters), 2)
-        self.assertTrue(all([c.risk_level in [1, 13] for c in cluster_manager.clusters]))
-        self.assertTrue(sum([c.get_encounter_count() for c in cluster_manager.clusters]) == 3)
+        self.assertTrue(all([c.risk_level in [1, 13]
+                             for c in cluster_manager.clusters]))
+        self.assertTrue(sum([c.get_encounter_count()
+                             for c in cluster_manager.clusters]) == 3)
 
     def test_cleanup_outdated_cluster(self):
         n_trials = 100
         for _ in range(n_trials):
             # scenario: a new encounter is added that is waaay outdated; it should not create a cluster
             visits = [
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=8),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=2),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=8),
             ]
             humans = [
-                FakeHuman(real_uid=0, exposition_timestamp=never, visits_to_adopt=visits),
-                FakeHuman(real_uid=1, exposition_timestamp=never, visits_to_adopt=visits),
+                FakeHuman(real_uid=0, exposition_timestamp=never,
+                          visits_to_adopt=visits),
+                FakeHuman(real_uid=1, exposition_timestamp=never,
+                          visits_to_adopt=visits),
             ]
             messages = generate_received_messages(humans)
             h0_messages = messages[0]["received_messages"]
-            h0_messages = [msg for msgs in h0_messages.values() for msg in msgs]
+            h0_messages = [msg for msgs in h0_messages.values()
+                           for msg in msgs]
             cluster_manager = naive.NaiveClusterManager(
                 ticks_per_uid_roll=1,
                 max_history_ticks_offset=5,
             )
             cluster_manager.add_messages(h0_messages)
             self.assertEqual(len(cluster_manager.clusters), 1)
-            self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(8))
+            self.assertEqual(
+                cluster_manager.clusters[0].first_update_time, np.uint8(8))
             # new manually added encounters that are outdated should also be ignored
             cluster_manager.add_messages([
-                mu.EncounterMessage(humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
+                mu.EncounterMessage(
+                    humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
             ])
             self.assertEqual(len(cluster_manager.clusters), 1)
-            self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(8))
+            self.assertEqual(
+                cluster_manager.clusters[0].first_update_time, np.uint8(8))
 
     def test_cleanup_outdated_but_updated_cluster(self):
         n_trials = 100
@@ -261,32 +298,43 @@ class NaiveClusteringTests(unittest.TestCase):
             # scenario: the early encounters are beyond the max history offset from the later encounters,
             # but these should all be clustered and kept due to the partial uid matching strategy
             visits = [
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=4),
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=7),
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=8),
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=10),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=2),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=4),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=7),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=8),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=10),
             ]
             humans = [
-                FakeHuman(real_uid=0, exposition_timestamp=never, visits_to_adopt=visits),
-                FakeHuman(real_uid=1, exposition_timestamp=never, visits_to_adopt=visits),
+                FakeHuman(real_uid=0, exposition_timestamp=never,
+                          visits_to_adopt=visits),
+                FakeHuman(real_uid=1, exposition_timestamp=never,
+                          visits_to_adopt=visits),
             ]
             messages = generate_received_messages(humans)
             h0_messages = messages[0]["received_messages"]
-            h0_messages = [msg for msgs in h0_messages.values() for msg in msgs]
+            h0_messages = [msg for msgs in h0_messages.values()
+                           for msg in msgs]
             cluster_manager = naive.NaiveClusterManager(
                 ticks_per_uid_roll=1,
                 max_history_ticks_offset=5,
             )
             cluster_manager.add_messages(h0_messages)
             self.assertEqual(len(cluster_manager.clusters), 1)
-            self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(2))
+            self.assertEqual(
+                cluster_manager.clusters[0].first_update_time, np.uint8(2))
             # new manually added encounters that are outdated should be ignored
             cluster_manager.add_messages([
-                mu.EncounterMessage(humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
+                mu.EncounterMessage(
+                    humans[1].rolling_uids[0], risk_level=np.uint8(1), encounter_time=0)
             ])
             self.assertEqual(len(cluster_manager.clusters), 1)
-            self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(2))
+            self.assertEqual(
+                cluster_manager.clusters[0].first_update_time, np.uint8(2))
 
     def test_random_large_scale(self):
         n_trials = 5
@@ -297,14 +345,17 @@ class NaiveClusteringTests(unittest.TestCase):
                 n_expositions=25,
                 max_timestamp=14,
             )
-            blind_cluster_manager = blind.BlindClusterManager(max_history_ticks_offset=never)
+            blind_cluster_manager = blind.BlindClusterManager(
+                max_history_ticks_offset=never)
             blind_cluster_manager.add_messages(h0_messages)
             naive_cluster_manager = naive.NaiveClusterManager(ticks_per_uid_roll=1,
                                                               max_history_ticks_offset=never)
             naive_cluster_manager.add_messages(h0_messages)
-            perfect_cluster_manager = perfect.PerfectClusterManager(max_history_ticks_offset=never)
+            perfect_cluster_manager = perfect.PerfectClusterManager(
+                max_history_ticks_offset=never)
             perfect_cluster_manager.add_messages(h0_messages)
-            simple_cluster_manager = simple.SimplisticClusterManager(max_history_ticks_offset=never)
+            simple_cluster_manager = simple.SimplisticClusterManager(
+                max_history_ticks_offset=never)
             simple_cluster_manager.add_messages(h0_messages)
             self.assertGreaterEqual(
                 len(simple_cluster_manager.clusters),
@@ -317,25 +368,40 @@ class NaiveClusteringTests(unittest.TestCase):
             for id in naive_homogeneity_scores:
                 self.assertLessEqual(naive_homogeneity_scores[id], 1.0)
                 expected_user_encounters = \
-                    sum([v.visited_real_uid == 0 and v.visitor_real_uid == id for v in visits])
-                min_homogeneity = expected_user_encounters / sum([v.visited_real_uid == 0 for v in visits])
-                self.assertLessEqual(min_homogeneity, naive_homogeneity_scores[id])
+                    sum([v.visited_real_uid ==
+                         0 and v.visitor_real_uid == id for v in visits])
+                min_homogeneity = expected_user_encounters / \
+                    sum([v.visited_real_uid == 0 for v in visits])
+                self.assertLessEqual(
+                    min_homogeneity, naive_homogeneity_scores[id])
                 if id in perfect_homogeneity_scores:
                     self.assertEqual(perfect_homogeneity_scores[id], 1.0)
 
             print(f"---- iter#{iter_idx + 1} ----")
-            print(f"\tsimplistic clustr average homogeneity = {np.mean(list(simple_homogeneity_scores.values()))}")
-            print(f"\tsimplistic clustr count error = {simple_cluster_manager._get_cluster_count_error()}")
-            print(f"\tsimplistic clustr count = {len(simple_cluster_manager.clusters)}")
-            print(f"\tperfect clustr average homogeneity = {np.mean(list(perfect_homogeneity_scores.values()))}")
-            print(f"\tperfect clustr count error = {perfect_cluster_manager._get_cluster_count_error()}")
-            print(f"\tperfect clustr count = {len(perfect_cluster_manager.clusters)}")
-            print(f"\tnaive clustr average homogeneity = {np.mean(list(naive_homogeneity_scores.values()))}")
-            print(f"\tnaive clustr count error = {naive_cluster_manager._get_cluster_count_error()}")
-            print(f"\tnaive clustr count = {len(naive_cluster_manager.clusters)}")
-            print(f"\tblind clustr average homogeneity = {np.mean(list(blind_homogeneity_scores.values()))}")
-            print(f"\tblind clustr count error = {blind_cluster_manager._get_cluster_count_error()}")
-            print(f"\tblind clustr count = {len(blind_cluster_manager.clusters)}")
+            print(
+                f"\tsimplistic clustr average homogeneity = {np.mean(list(simple_homogeneity_scores.values()))}")
+            print(
+                f"\tsimplistic clustr count error = {simple_cluster_manager._get_cluster_count_error()}")
+            print(
+                f"\tsimplistic clustr count = {len(simple_cluster_manager.clusters)}")
+            print(
+                f"\tperfect clustr average homogeneity = {np.mean(list(perfect_homogeneity_scores.values()))}")
+            print(
+                f"\tperfect clustr count error = {perfect_cluster_manager._get_cluster_count_error()}")
+            print(
+                f"\tperfect clustr count = {len(perfect_cluster_manager.clusters)}")
+            print(
+                f"\tnaive clustr average homogeneity = {np.mean(list(naive_homogeneity_scores.values()))}")
+            print(
+                f"\tnaive clustr count error = {naive_cluster_manager._get_cluster_count_error()}")
+            print(
+                f"\tnaive clustr count = {len(naive_cluster_manager.clusters)}")
+            print(
+                f"\tblind clustr average homogeneity = {np.mean(list(blind_homogeneity_scores.values()))}")
+            print(
+                f"\tblind clustr count error = {blind_cluster_manager._get_cluster_count_error()}")
+            print(
+                f"\tblind clustr count = {len(blind_cluster_manager.clusters)}")
 
     def test_random_large_scale_batch(self):
         n_trials = 25
@@ -347,12 +413,16 @@ class NaiveClusteringTests(unittest.TestCase):
                 n_expositions=5,
                 max_timestamp=14,
             )
-            encounter_messages = [m for m in h0_messages if isinstance(m, mu.EncounterMessage)]
-            update_messages = [m for m in h0_messages if isinstance(m, mu.UpdateMessage)]
+            encounter_messages = [
+                m for m in h0_messages if isinstance(m, mu.EncounterMessage)]
+            update_messages = [
+                m for m in h0_messages if isinstance(m, mu.UpdateMessage)]
             batched_encounter_messages = \
-                covid19sim.frozen.utils.convert_messages_to_batched_new_format(encounter_messages)
+                covid19sim.frozen.utils.convert_messages_to_batched_new_format(
+                    encounter_messages)
             batched_update_messages = \
-                covid19sim.frozen.utils.convert_messages_to_batched_new_format(update_messages)
+                covid19sim.frozen.utils.convert_messages_to_batched_new_format(
+                    update_messages)
             batched_naive_cluster_manager = naive.NaiveClusterManager(
                 ticks_per_uid_roll=1,
                 max_history_ticks_offset=never,
@@ -361,7 +431,8 @@ class NaiveClusteringTests(unittest.TestCase):
                 ticks_per_uid_roll=1,
                 max_history_ticks_offset=never,
             )
-            batched_naive_cluster_manager.add_messages(batched_encounter_messages)
+            batched_naive_cluster_manager.add_messages(
+                batched_encounter_messages)
             naive_cluster_manager.add_messages(encounter_messages)
             self.assertEqual(
                 batched_naive_cluster_manager.clusters,
@@ -388,7 +459,8 @@ class NaiveClusteringTests(unittest.TestCase):
                     self.assertEqual(len(c1_msgs), len(c2_msgs))
                     for m1, m2 in zip(c1_msgs, c2_msgs):
                         self.assertEqual(m1, m2)
-            simple_cluster_manager = simple.SimplisticClusterManager(max_history_ticks_offset=never)
+            simple_cluster_manager = simple.SimplisticClusterManager(
+                max_history_ticks_offset=never)
             simple_cluster_manager.add_messages(h0_messages)
             self.assertGreaterEqual(
                 len(simple_cluster_manager.clusters),

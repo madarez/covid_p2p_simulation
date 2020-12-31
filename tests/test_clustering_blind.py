@@ -16,14 +16,18 @@ class BlindClusteringTests(unittest.TestCase):
         for _ in range(n_trials):
             # first scenario: single day visits, same risk for both visitors, should give 1 cluster
             visits = [
-                Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-                Visit(visitor_real_uid=2, visited_real_uid=0, exposition=False, timestamp=2),
+                Visit(visitor_real_uid=1, visited_real_uid=0,
+                      exposition=False, timestamp=2),
+                Visit(visitor_real_uid=2, visited_real_uid=0,
+                      exposition=False, timestamp=2),
             ]
             humans = [FakeHuman(real_uid=idx, exposition_timestamp=never, visits_to_adopt=visits)
                       for idx in range(3)]
             messages = generate_received_messages(humans)
-            h0_messages = [msg for msgs in messages[0]["received_messages"].values() for msg in msgs]
-            cluster_manager = clu.BlindClusterManager(max_history_ticks_offset=never)
+            h0_messages = [msg for msgs in messages[0]
+                           ["received_messages"].values() for msg in msgs]
+            cluster_manager = clu.BlindClusterManager(
+                max_history_ticks_offset=never)
             cluster_manager.add_messages(h0_messages)
             self.assertEqual(len(cluster_manager.clusters), 1)
             self.assertEqual(cluster_manager.latest_refresh_timestamp, 2)
@@ -36,9 +40,12 @@ class BlindClusteringTests(unittest.TestCase):
             humans = [FakeHuman(real_uid=idx, exposition_timestamp=never,
                                 visits_to_adopt=visits, force_init_risk=mu.RiskLevelType(idx))
                       for idx in range(3)]
-            messages = generate_received_messages(humans, minimum_risk_level_for_updates=1)
-            h0_messages = [msg for msgs in messages[0]["received_messages"].values() for msg in msgs]
-            cluster_manager = clu.BlindClusterManager(max_history_ticks_offset=never)
+            messages = generate_received_messages(
+                humans, minimum_risk_level_for_updates=1)
+            h0_messages = [msg for msgs in messages[0]
+                           ["received_messages"].values() for msg in msgs]
+            cluster_manager = clu.BlindClusterManager(
+                max_history_ticks_offset=never)
             cluster_manager.add_messages(h0_messages)
             self.assertEqual(len(cluster_manager.clusters), 2)
             self.assertEqual(cluster_manager.latest_refresh_timestamp, 2)
@@ -53,7 +60,8 @@ class BlindClusteringTests(unittest.TestCase):
     def test_cluster_risk_update(self):
         # scenario: single encounter that gets updated (should remain at 1 cluster)
         visits = [
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=0),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=0),
         ]
         humans = [
             FakeHuman(real_uid=0, exposition_timestamp=never, visits_to_adopt=visits,
@@ -62,8 +70,10 @@ class BlindClusteringTests(unittest.TestCase):
                       force_init_risk=np.uint8(7)),
         ]
         messages = generate_received_messages(humans)
-        h0_messages = [msg for msgs in messages[0]["received_messages"].values() for msg in msgs]
-        cluster_manager = clu.BlindClusterManager(max_history_ticks_offset=never)
+        h0_messages = [msg for msgs in messages[0]
+                       ["received_messages"].values() for msg in msgs]
+        cluster_manager = clu.BlindClusterManager(
+            max_history_ticks_offset=never)
         cluster_manager.add_messages(h0_messages)
         self.assertEqual(len(cluster_manager.clusters), 1)
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(7))
@@ -74,13 +84,15 @@ class BlindClusteringTests(unittest.TestCase):
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(9))
         # add a new encounter: it should not match the existing cluster due to diff risk
         cluster_manager.add_messages([
-            mu.EncounterMessage(mu.create_new_uid(), risk_level=np.uint8(1), encounter_time=0)
+            mu.EncounterMessage(mu.create_new_uid(),
+                                risk_level=np.uint8(1), encounter_time=0)
         ])
         self.assertEqual(len(cluster_manager.clusters), 2)
         self.assertEqual(cluster_manager.clusters[1].risk_level, np.uint8(1))
         # add a new encounter: it should match the existing cluster due to same risk
         new_encounter = \
-            mu.EncounterMessage(mu.create_new_uid(), risk_level=np.uint8(9), encounter_time=0)
+            mu.EncounterMessage(mu.create_new_uid(),
+                                risk_level=np.uint8(9), encounter_time=0)
         cluster_manager.add_messages([new_encounter])
         self.assertEqual(len(cluster_manager.clusters), 2)
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(9))
@@ -93,33 +105,45 @@ class BlindClusteringTests(unittest.TestCase):
         self.assertEqual(cluster_manager.clusters[0].risk_level, np.uint8(9))
         self.assertEqual(cluster_manager.clusters[1].risk_level, np.uint8(13))
         self.assertEqual(cluster_manager.clusters[2].risk_level, np.uint8(1))
-        self.assertTrue(all([len(c.messages) == 1 for c in cluster_manager.clusters]))
+        self.assertTrue(
+            all([len(c.messages) == 1 for c in cluster_manager.clusters]))
 
     def test_cleanup_outdated_cluster(self):
         # scenario: a new encounter is added that is waaay outdated; it should not create a cluster
         visits = [
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=2),
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=5),
-            Visit(visitor_real_uid=1, visited_real_uid=0, exposition=False, timestamp=8),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=2),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=5),
+            Visit(visitor_real_uid=1, visited_real_uid=0,
+                  exposition=False, timestamp=8),
         ]
         humans = [
-            FakeHuman(real_uid=0, exposition_timestamp=never, visits_to_adopt=visits),
-            FakeHuman(real_uid=1, exposition_timestamp=never, visits_to_adopt=visits),
+            FakeHuman(real_uid=0, exposition_timestamp=never,
+                      visits_to_adopt=visits),
+            FakeHuman(real_uid=1, exposition_timestamp=never,
+                      visits_to_adopt=visits),
         ]
         messages = generate_received_messages(humans)
-        h0_messages = [msg for msgs in messages[0]["received_messages"].values() for msg in msgs]
+        h0_messages = [msg for msgs in messages[0]
+                       ["received_messages"].values() for msg in msgs]
         cluster_manager = clu.BlindClusterManager(max_history_ticks_offset=5)
         cluster_manager.add_messages(h0_messages)
         self.assertEqual(len(cluster_manager.clusters), 2)
-        self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(5))
-        self.assertEqual(cluster_manager.clusters[1].first_update_time, np.uint8(8))
+        self.assertEqual(
+            cluster_manager.clusters[0].first_update_time, np.uint8(5))
+        self.assertEqual(
+            cluster_manager.clusters[1].first_update_time, np.uint8(8))
         # new manually added encounters that are outdated should also be ignored
         cluster_manager.add_messages([
-            mu.EncounterMessage(mu.create_new_uid(), risk_level=np.uint8(1), encounter_time=0)
+            mu.EncounterMessage(mu.create_new_uid(),
+                                risk_level=np.uint8(1), encounter_time=0)
         ])
         self.assertEqual(len(cluster_manager.clusters), 2)
-        self.assertEqual(cluster_manager.clusters[0].first_update_time, np.uint8(5))
-        self.assertEqual(cluster_manager.clusters[1].first_update_time, np.uint8(8))
+        self.assertEqual(
+            cluster_manager.clusters[0].first_update_time, np.uint8(5))
+        self.assertEqual(
+            cluster_manager.clusters[1].first_update_time, np.uint8(8))
 
     def test_random_large_scale(self):
         n_trials = 25
@@ -134,18 +158,22 @@ class BlindClusteringTests(unittest.TestCase):
                 n_expositions=n_expositions,
                 max_timestamp=max_timestamp,
             )
-            cluster_manager = clu.BlindClusterManager(max_history_ticks_offset=never)
+            cluster_manager = clu.BlindClusterManager(
+                max_history_ticks_offset=never)
             cluster_manager.add_messages(h0_messages)
             self.assertLessEqual(
                 len(cluster_manager.clusters),
-                (mu.message_uid_mask + 1) * (mu.risk_level_mask + 1) * (max_timestamp + 1)
+                (mu.message_uid_mask + 1) *
+                (mu.risk_level_mask + 1) * (max_timestamp + 1)
             )
             homogeneity_scores = cluster_manager._get_homogeneity_scores()
             for id in homogeneity_scores:
                 self.assertLessEqual(homogeneity_scores[id], 1.0)
                 expected_user_encounters = \
-                    sum([v.visited_real_uid == 0 and v.visitor_real_uid == id for v in visits])
-                min_homogeneity = expected_user_encounters / sum([v.visited_real_uid == 0 for v in visits])
+                    sum([v.visited_real_uid ==
+                         0 and v.visitor_real_uid == id for v in visits])
+                min_homogeneity = expected_user_encounters / \
+                    sum([v.visited_real_uid == 0 for v in visits])
                 self.assertLessEqual(min_homogeneity, homogeneity_scores[id])
 
 

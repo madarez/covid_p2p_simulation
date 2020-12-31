@@ -30,8 +30,10 @@ class FakeHuman:
             allow_spurious_exposition: bool = False,
     ):
         self.real_uid = real_uid
-        self.made_visit_to = [v for v in visits_to_adopt if v.visitor_real_uid == real_uid]
-        self.got_visit_from = [v for v in visits_to_adopt if v.visited_real_uid == real_uid]
+        self.made_visit_to = [
+            v for v in visits_to_adopt if v.visitor_real_uid == real_uid]
+        self.got_visit_from = [
+            v for v in visits_to_adopt if v.visited_real_uid == real_uid]
         self.visits = [v for v in visits_to_adopt
                        if v.visitor_real_uid == real_uid or v.visited_real_uid == real_uid]
         if force_init_uid is None:
@@ -46,19 +48,24 @@ class FakeHuman:
         self.rolling_exposed = np.asarray([exposition_timestamp == 0])
         self.rolling_risk = np.asarray(force_init_risk)
         self.rolling_visits = [[v for v in self.visits if v.timestamp == 0]]
-        max_timestamp = max([v.timestamp for v in self.visits]) if self.visits else 1
+        max_timestamp = max(
+            [v.timestamp for v in self.visits]) if self.visits else 1
         for timestamp in range(1, int(max_timestamp) + 1):
             if len(self.rolling_uids) <= timestamp:
-                self.rolling_uids = np.append(self.rolling_uids, mu.update_uid(self.rolling_uids[-1]))
+                self.rolling_uids = np.append(
+                    self.rolling_uids, mu.update_uid(self.rolling_uids[-1]))
             elif len(self.rolling_uids) >= 2:
-                assert ((self.rolling_uids[-1] >> 1) << 1) == ((self.rolling_uids[-2] << 1) & mu.message_uid_mask)
-            self.rolling_exposed = np.append(self.rolling_exposed, timestamp >= exposition_timestamp)
+                assert ((self.rolling_uids[-1] >> 1) << 1) == (
+                    (self.rolling_uids[-2] << 1) & mu.message_uid_mask)
+            self.rolling_exposed = np.append(
+                self.rolling_exposed, timestamp >= exposition_timestamp)
             # we gradually increase risk level from time of exposition time (just faking things)
             if len(self.rolling_risk) <= timestamp:
                 self.rolling_risk = np.append(self.rolling_risk,
                                               self.rolling_risk[-1] + 1 if timestamp >= exposition_timestamp
                                               else self.rolling_risk[-1])
-            self.rolling_visits.append([v for v in self.visits if v.timestamp == timestamp])
+            self.rolling_visits.append(
+                [v for v in self.visits if v.timestamp == timestamp])
         for v in self.visits:
             # note: under the current logic, only the visitor can infect the visited
             assert v.visitor_real_uid != v.visited_real_uid
@@ -75,7 +82,8 @@ class FakeHuman:
                 # allow visits to set the exposition timestamp for this human
                 for timestamp in range(int(v.timestamp), int(max_timestamp) + 1):
                     self.rolling_exposed[timestamp] = True
-                    self.rolling_risk[timestamp] = self.rolling_risk[max(timestamp - 1, 0)] + 1
+                    self.rolling_risk[timestamp] = self.rolling_risk[max(
+                        timestamp - 1, 0)] + 1
 
 
 def generate_sent_messages(
@@ -122,7 +130,8 @@ def generate_sent_messages(
                             update_message = mu.UpdateMessage(
                                 uid=message.uid,
                                 old_risk_level=human.rolling_risk[prev_timestamp],
-                                new_risk_level=mu.RiskLevelType(maximum_risk_level_for_saturaton),
+                                new_risk_level=mu.RiskLevelType(
+                                    maximum_risk_level_for_saturaton),
                                 encounter_time=message.encounter_time,
                                 update_time=int(timestamp),
                                 _sender_uid=message._sender_uid,
@@ -131,7 +140,8 @@ def generate_sent_messages(
                                 _real_update_time=int(timestamp),
                                 _update_reason="positive_test",
                             )
-                            sent_update_messages[timestamp].append(update_message)
+                            sent_update_messages[timestamp].append(
+                                update_message)
                             sent_messages[timestamp].append(update_message)
             elif human.rolling_risk[timestamp] == minimum_risk_level_for_updates:
                 # broadcast update messages systematically once risk threshold is reached
@@ -146,12 +156,14 @@ def generate_sent_messages(
                                 current_time=int(timestamp),
                                 update_reason="symptoms",
                             )
-                            sent_update_messages[timestamp].append(update_message)
+                            sent_update_messages[timestamp].append(
+                                update_message)
                             sent_messages[timestamp].append(update_message)
         output[human_idx] = {
             "sent_encounter_messages": sent_encounter_messages,
             "sent_update_messages": sent_update_messages,
-            "sent_messages": sent_messages,  # this one just combines the other two (in order)
+            # this one just combines the other two (in order)
+            "sent_messages": sent_messages,
         }
     return output
 
@@ -231,6 +243,8 @@ def generate_random_messages(
     # ...then, had a handful of exposition visits to increase risk levels
     for _ in range(n_expositions):
         exposer_real_uid = np.random.randint(n_humans)
+        t = np.random.randint(max_timestamp + 1)
+        print(exposer_real_uid, t)
         exposed_real_uid = exposer_real_uid
         while exposer_real_uid == exposed_real_uid:
             exposed_real_uid = np.random.randint(n_humans)
@@ -238,7 +252,7 @@ def generate_random_messages(
             visitor_real_uid=exposer_real_uid,
             visited_real_uid=exposed_real_uid,
             exposition=True,
-            timestamp=np.random.randint(max_timestamp + 1),
+            timestamp=t,
         ))
     # now, generate all humans with the spurious thingy tag so we dont have to set expo flags
     humans = [
@@ -249,5 +263,6 @@ def generate_random_messages(
             allow_spurious_exposition=True,
         ) for idx in range(n_humans)
     ]
-    messages = generate_received_messages(humans)  # hopefully this is not too slow
+    messages = generate_received_messages(
+        humans)  # hopefully this is not too slow
     return [msg for msgs in messages[0]["received_messages"].values() for msg in msgs], visits

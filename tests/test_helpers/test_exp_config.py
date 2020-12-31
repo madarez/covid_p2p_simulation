@@ -8,7 +8,8 @@ class Tests(unittest.TestCase):
 
     def setUp(self):
         if ExpConfig().is_empty():
-            ExpConfig.load_config(os.path.join(os.path.dirname(__file__), "../src/covid19sim/configs/test_config.yml"))
+            ExpConfig.load_config(os.path.join(
+                os.path.dirname(__file__), "test_config.yml"))
 
     def test_singleton(self):
         self.assertIs(ExpConfig(), ExpConfig())
@@ -16,7 +17,7 @@ class Tests(unittest.TestCase):
     def test_getters_setters(self):
         _config = ExpConfig._instance._config
         instance = ExpConfig()
-        
+
         for k, v in _config.items():
             self.assertEqual(ExpConfig.get(k), _config[k])
             self.assertEqual(instance[k], _config[k])
